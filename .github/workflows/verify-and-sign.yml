@@ -5,6 +5,9 @@ on:
       version:
         description: 'Exact candidate version, e.g. 1.6.0'
         required: true
+      release_id:
+        description: 'Draft candidate release ID supplied by the maintainer publisher'
+        required: true
       sha256:
         description: 'Expected installer SHA256 from the private build checks'
         required: true
@@ -26,6 +29,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           CANDIDATE_VERSION: ${{ inputs.version }}
+          CANDIDATE_RELEASE_ID: ${{ inputs.release_id }}
           EXPECTED_SHA256: ${{ inputs.sha256 }}
         run: |
           Invoke-WebRequest "https://raw.githubusercontent.com/$env:GITHUB_REPOSITORY/$env:GITHUB_SHA/verify-candidate.cjs" -OutFile "$env:RUNNER_TEMP/verify-candidate.cjs"
@@ -41,6 +45,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           CANDIDATE_VERSION: ${{ inputs.version }}
+          CANDIDATE_RELEASE_ID: ${{ inputs.release_id }}
           EXPECTED_SHA256: ${{ inputs.sha256 }}
           WINDOWS_RESULT: ${{ needs.verify.outputs.result }}
           JUNGS_UPDATE_SIGNING_KEY: ${{ secrets.JUNGS_UPDATE_SIGNING_KEY }}

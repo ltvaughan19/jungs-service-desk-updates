@@ -1,11 +1,11 @@
 // This job never executes the installer; signing runs in a separate VM from tests.
 const crypto=require('node:crypto');
 (async()=>{
- const repo=process.env.GITHUB_REPOSITORY,version=process.env.CANDIDATE_VERSION,expected=process.env.EXPECTED_SHA256;
- if(repo!=='ltvaughan19/jungs-service-desk-updates'||!/^\d+\.\d+\.\d+$/.test(version)||!/^[a-f0-9]{64}$/i.test(expected))throw Error('Invalid candidate identity');
+ const repo=process.env.GITHUB_REPOSITORY,version=process.env.CANDIDATE_VERSION,expected=process.env.EXPECTED_SHA256,releaseId=process.env.CANDIDATE_RELEASE_ID;
+ if(!/^\d+$/.test(releaseId)||repo!=='ltvaughan19/jungs-service-desk-updates'||!/^\d+\.\d+\.\d+$/.test(version)||!/^[a-f0-9]{64}$/i.test(expected))throw Error('Invalid candidate identity');
  const proof=JSON.parse(Buffer.from(process.env.WINDOWS_RESULT||'','base64').toString());if(proof.version!==version||proof.sha256!==expected.toUpperCase()||!proof.installed||!proof.applicationCheckPassed||!proof.uninstalled)throw Error('Windows verification is required before signing');
  const headers={Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json','User-Agent':'Jungs-Candidate-Signing'};
- const r=await fetch(`https://api.github.com/repos/${repo}/releases/tags/candidate-${version}`,{headers});if(!r.ok)throw Error('Candidate lookup failed');const release=await r.json();if(!release.draft)throw Error('Only draft candidates can be signed');
+ const r=await fetch(`https://api.github.com/repos/${repo}/releases/${releaseId}`,{headers});if(!r.ok)throw Error('Candidate lookup failed');const release=await r.json();if(release.tag_name!=='candidate-'+version||!release.draft)throw Error('Only draft candidates can be signed');
  const name=`Jungs-Service-Desk-Setup-${version}.exe`,asset=release.assets.find(a=>a.name===name);if(!asset||asset.size>200000000)throw Error('Candidate installer missing');
  const download=await fetch(asset.url,{headers:{...headers,Accept:'application/octet-stream'}});if(!download.ok)throw Error('Installer download failed');const bytes=Buffer.from(await download.arrayBuffer());if(crypto.createHash('sha256').update(bytes).digest('hex')!==expected.toLowerCase())throw Error('Candidate changed after Windows verification');
  const key=crypto.createPrivateKey(process.env.JUNGS_UPDATE_SIGNING_KEY||'');if(key.asymmetricKeyType!=='ed25519')throw Error('Ed25519 signing secret is required');
