@@ -1,4 +1,4 @@
-param([string]$Installer = (Join-Path $PSScriptRoot 'Jungs-Service-Desk-Setup-1.6.0.exe'))
+param([string]$Installer = (Join-Path $PSScriptRoot 'Jungs-Service-Desk-Setup-1.6.1.exe'))
 $ErrorActionPreference = 'Stop'
 $installerPath = (Resolve-Path -LiteralPath $Installer).Path
 $registryRoots = @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')
