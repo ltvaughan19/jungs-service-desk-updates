@@ -27,7 +27,7 @@ jobs:
         id: test
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_DOWNLOAD_URL: ${{ secrets.JUNGS_CANDIDATE_DOWNLOAD_URL }}
           CANDIDATE_VERSION: ${{ inputs.version }}
           CANDIDATE_RELEASE_ID: ${{ inputs.release_id }}
           EXPECTED_SHA256: ${{ inputs.sha256 }}
