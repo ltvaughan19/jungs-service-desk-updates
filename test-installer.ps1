@@ -22,7 +22,11 @@ try {
   $report = Get-ChildItem $env:TEMP -Directory -Filter 'jungs-security-check-*' | Where-Object { $_.LastWriteTime -ge $started } | Sort-Object LastWriteTime -Descending | ForEach-Object { Join-Path $_.FullName 'security-result.json' } | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
   if (-not $report) { throw 'Installed application produced no self-test report.' }
   $checks = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
-  if ($checks.PSObject.Properties.Count -lt 8 -or @($checks.PSObject.Properties | Where-Object { $_.Value -ne $true }).Count -ne 0) { throw 'A packaged security, empty-start, or catalog check failed.' }
+  $properties = @($checks.PSObject.Properties)
+  $requiredChecks = @('freshInstallEmpty', 'catalogAvailable', 'originalImageAvailable', 'uiLoaded', 'nodeUnavailable', 'inlineScriptsBlocked', 'externalFetchBlocked', 'sandboxed', 'contextIsolation', 'recordsEncrypted', 'applicationProtocol')
+  Write-Output ('Packaged self-test checks: ' + ($checks | ConvertTo-Json -Compress))
+  if ($properties.Count -lt $requiredChecks.Count -or @($properties | Where-Object { $_.Value -ne $true }).Count -ne 0) { throw 'A packaged security, empty-start, or catalog check failed.' }
+  foreach ($name in $requiredChecks) { if ($checks.$name -ne $true) { throw ('Required packaged check failed or missing: ' + $name) } }
   $result.applicationCheckPassed = $true
   $result.selfTestReport = $report
   $uninstaller = Get-ChildItem -LiteralPath $installFolder -Filter '*Uninstall*.exe' | Select-Object -First 1
