@@ -1,0 +1,49 @@
+name: Verify and sign update candidate
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Exact candidate version, e.g. 1.6.0'
+        required: true
+      sha256:
+        description: 'Expected installer SHA256 from the private build checks'
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: verify-and-sign
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2025
+    timeout-minutes: 12
+    outputs:
+      result: ${{ steps.test.outputs.result }}
+    steps:
+      - name: Install, check packaged app and uninstall in a disposable Windows VM
+        id: test
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_VERSION: ${{ inputs.version }}
+          EXPECTED_SHA256: ${{ inputs.sha256 }}
+        run: |
+          Invoke-WebRequest "https://raw.githubusercontent.com/$env:GITHUB_REPOSITORY/$env:GITHUB_SHA/verify-candidate.cjs" -OutFile "$env:RUNNER_TEMP/verify-candidate.cjs"
+          node "$env:RUNNER_TEMP/verify-candidate.cjs"
+  sign:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - name: Sign only the hash-verified Windows-tested candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_VERSION: ${{ inputs.version }}
+          EXPECTED_SHA256: ${{ inputs.sha256 }}
+          WINDOWS_RESULT: ${{ needs.verify.outputs.result }}
+          JUNGS_UPDATE_SIGNING_KEY: ${{ secrets.JUNGS_UPDATE_SIGNING_KEY }}
+        run: |
+          curl --fail --silent --show-error "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA/sign-candidate.cjs" --output "$RUNNER_TEMP/sign-candidate.cjs"
+          node "$RUNNER_TEMP/sign-candidate.cjs"
